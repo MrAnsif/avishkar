@@ -45,7 +45,7 @@ export async function POST(req) {
       );
     }
 
-    if (!["single", "team"].includes(type)) {
+    if (!["individual", "team"].includes(type)) {
       return NextResponse.json(
         { message: "Invalid event type" },
         { status: 400 }
@@ -126,7 +126,7 @@ export async function PUT(req) {
     delete updates.department;
 
     // 🧠 Team size logic
-    if (updates.type === "single") {
+    if (updates.type === "individual") {
       updates.teamSize = 1;
     }
     if (updates.type === "team" && updates.teamSize < 2) {

@@ -120,7 +120,7 @@ export default function SmoothScrollComponent() {
         }
 
         .smooth-scroll-wrapper {
-          background-color: #111;
+          background-color: #141313;
           font-family: var(--font-open-sans), sans-serif;
           color: white;
           overscroll-behavior: none;

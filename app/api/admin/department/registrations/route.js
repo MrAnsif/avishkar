@@ -7,26 +7,37 @@ export async function GET(req) {
   try {
     await connectDB();
 
-    const admin = adminAuth(req);
-    const { department } = admin;
+    // 🔐 Department admin auth
+    const admin = adminAuth(req); // { role, department }
 
-    const events = await Event.find({ department }).select("_id");
+    /**
+     * STEP 1: Get all events hosted by this department
+     */
+    const departmentEvents = await Event.find(
+      { department: admin.department },
+      { _id: 1 }
+    );
 
-    const eventIds = events.map(e => e._id);
+    const eventIds = departmentEvents.map(e => e._id);
 
+    /**
+     * STEP 2: Get registrations for those events
+     */
     const registrations = await Registration.find({
       eventId: { $in: eventIds },
     })
-      .populate("eventId", "title department")
+      .populate("eventId", "title department type")
       .sort({ createdAt: -1 });
 
-    return Response.json({
-      department,
-      count: registrations.length,
-      registrations,
-    });
+    return Response.json(
+      {
+        count: registrations.length,
+        registrations,
+      },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error(err);
+    console.error("Dept Admin Registrations Error:", err.message);
     return Response.json(
       { message: err.message || "Unauthorized" },
       { status: 401 }

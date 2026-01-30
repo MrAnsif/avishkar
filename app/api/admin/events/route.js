@@ -234,6 +234,58 @@ export async function GET(req, { params }) {
     return NextResponse.json({ message: error.message || "Server Error" }, { status: 500 });
   }
 }
+// ========================
+// ENABLE / DISABLE EVENT
+// ========================
+export async function PATCH(req) {
+  try {
+    await connectDB();
 
+    // 🔐 Admin auth (optional but recommended)
+    adminAuth(req);
 
+    const { eventId, isActive } = await req.json();
+
+    if (!eventId || typeof isActive !== "boolean") {
+      return NextResponse.json(
+        { message: "Event ID and isActive(boolean) are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return NextResponse.json(
+        { message: "Invalid Event ID" },
+        { status: 400 }
+      );
+    }
+
+    const event = await Event.findByIdAndUpdate(
+      eventId,
+      { isActive },
+      { new: true }
+    );
+
+    if (!event) {
+      return NextResponse.json(
+        { message: "Event not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        message: `Event ${isActive ? "enabled" : "disabled"} successfully`,
+        event,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Toggle Event Status Error:", error);
+    return NextResponse.json(
+      { message: error.message || "Server Error" },
+      { status: 500 }
+    );
+  }
+}
 
