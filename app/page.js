@@ -10,6 +10,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // Lazy load GridScan with no SSR
 const GridScan = dynamic(() => import('@/components/GridScan').then(mod => ({ default: mod.GridScan })), {
@@ -76,7 +77,7 @@ const Page = () => {
   return (
     <>
 
-      <section className='relative text-[#AD242C] w-full'>
+      <section className='relative w-full'>
         <div className='fixed inset-0 -z-10 bg-[#141313] pointer-events-auto'>
           {/* {showGrid && (
             <GridScan
@@ -164,6 +165,7 @@ const Page = () => {
               height={400}
             />
             <h3 className={`${pressStart2P.className} text-xl drop-shadow-[2px_2px_0px_#000] drop-shadow-[#f87f85] text-center`}>FEB 5,6,7 <br />2026</h3>
+            <Link href={`/events`} className={` p-3 mt-2 border pointer-events-auto border-red-600 !text-white drop-shadow-[2px_2px_0px_#000] drop-shadow-[#f87f85] backdrop-blur-sm hover:bg-neutral-900 ${pressStart2P.className}`} >Register Now</Link>
           </div>
         </div>
         <ScrollMorphComponent />

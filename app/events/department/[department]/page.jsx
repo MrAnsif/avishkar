@@ -16,11 +16,11 @@ export default function DepartmentEventsPage() {
       try {
         const res = await fetch(`/api/events/department/${department}`)
         const data = await res.json()
-        console.log('asdfasdf',data)
+        console.log('asdfasdf', data)
         if (!res.ok) {
           throw new Error(data.message || 'Failed to fetch events')
         }
-        
+
         setEvents(data.events || [])
         setError(null)
       } catch (err) {
@@ -36,7 +36,7 @@ export default function DepartmentEventsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
         Loading events...
       </div>
     )
@@ -44,7 +44,7 @@ export default function DepartmentEventsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
         <div className="text-center">
           <p className="text-red-500 text-xl mb-2">Error</p>
           <p className="text-white/70">{error}</p>
@@ -77,7 +77,7 @@ export default function DepartmentEventsPage() {
                 className="group"
               >
                 <div className="rounded-xl overflow-hidden border border-white/20 bg-black/40 backdrop-blur-md p-4 transition-all hover:scale-[1.02]">
-                  
+
                   <div className="relative w-full aspect-[3/4] mb-4">
                     <Image
                       src={event.imageUrl}

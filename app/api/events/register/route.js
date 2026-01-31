@@ -2,20 +2,15 @@ import { connectDB } from "@/lib/db";
 import Registration from "@/lib/models/Registration";
 import Event from "@/lib/models/Event";
 import cloudinary from "@/lib/cloudinary";
-import crypto from "crypto";
-import { auth } from "@clerk/nextjs/server";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 
 async function generateUnique4DigitCode() {
   let code;
   let exists = true;
-
   while (exists) {
-    // Generate 4-digit code (1000–9999)
     code = Math.floor(1000 + Math.random() * 9000).toString();
-
     exists = await Registration.exists({ uniqueCode: code });
   }
-
   return code;
 }
 
@@ -23,9 +18,41 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    // 🔐 Clerk authentication (MUST be awaited)
-    const { userId } = await auth();
-    console.log("AUTH USER ID:", userId);
+    // Get token from Authorization header
+    const authHeader = req.headers.get('authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return Response.json(
+        { message: "Unauthorized - No token provided" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    console.log("TOKEN", token);
+
+    // Verify token using Clerk's JWKS endpoint
+    let userId;
+    try {
+      // Get your Clerk Frontend API from the JWT issuer
+      const JWKS = createRemoteJWKSet(
+        new URL('https://cosmic-adder-20.clerk.accounts.dev/.well-known/jwks.json')
+      );
+
+      const { payload } = await jwtVerify(token, JWKS, {
+        issuer: 'https://cosmic-adder-20.clerk.accounts.dev',
+        clockTolerance: 60,
+      });
+
+      userId = payload.sub;
+      console.log("AUTH USER ID:", userId);
+    } catch (err) {
+      console.error("Token verification failed:", err);
+      return Response.json(
+        { message: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
 
     if (!userId) {
       return Response.json(
@@ -35,7 +62,6 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-
     const {
       eventId,
       name,
@@ -52,7 +78,6 @@ export async function POST(req) {
       paymentScreenshot,
     } = body;
 
-    // Basic validation
     if (
       !eventId ||
       !name ||
@@ -67,7 +92,6 @@ export async function POST(req) {
       );
     }
 
-    // Check event
     const event = await Event.findById(eventId);
     if (!event) {
       return Response.json(
@@ -76,7 +100,6 @@ export async function POST(req) {
       );
     }
 
-    // Prevent duplicate registration
     const exists = await Registration.findOne({ userId, eventId });
     if (exists) {
       return Response.json(
@@ -85,14 +108,12 @@ export async function POST(req) {
       );
     }
 
-    // Upload payment screenshot
     const upload = await cloudinary.uploader.upload(paymentScreenshot, {
       folder: "event_payments",
     });
 
     const uniqueCode = await generateUnique4DigitCode();
 
-    // Save registration
     const registration = await Registration.create({
       userId,
       eventId,
@@ -119,7 +140,7 @@ export async function POST(req) {
   } catch (err) {
     console.error("REGISTER ERROR:", err);
     return Response.json(
-      { message: "Server error" },
+      { message: "Server error", error: err.message },
       { status: 500 }
     );
   }

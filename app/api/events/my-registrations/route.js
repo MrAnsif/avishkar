@@ -1,16 +1,47 @@
 import { connectDB } from "@/lib/db";
 import Registration from "@/lib/models/Registration";
 import Event from "@/lib/models/Event";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { jwtVerify, createRemoteJWKSet } from "jose";
 
-// GET all registrations of the logged-in user
 export async function GET(req) {
   try {
     await connectDB();
 
-    // 🔐 FIX: Must await auth()
-    const { userId } = await auth();
+    // Get token from Authorization header
+    const authHeader = req.headers.get('authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log("MY-REGISTRATIONS API - No Bearer token found");
+      return NextResponse.json(
+        { message: "Unauthorized - Please sign in" },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    console.log("TOKEN", token);
+    // Verify token using Clerk's JWKS endpoint
+    let userId;
+    try {
+      const JWKS = createRemoteJWKSet(
+        new URL('https://cosmic-adder-20.clerk.accounts.dev/.well-known/jwks.json')
+      );
+
+      const { payload } = await jwtVerify(token, JWKS, {
+        issuer: 'https://cosmic-adder-20.clerk.accounts.dev',
+        clockTolerance: 60,
+      });
+
+      userId = payload.sub;
+      console.log("MY-REGISTRATIONS API - UserId:", userId);
+    } catch (err) {
+      console.error("Token verification failed:", err);
+      return NextResponse.json(
+        { message: "Invalid or expired token" },
+        { status: 401 }
+      );
+    }
 
     if (!userId) {
       return NextResponse.json(

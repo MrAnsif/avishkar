@@ -1,43 +1,68 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useAuth } from "@clerk/nextjs";
 
 const EventRegisterPage = () => {
   const { eventId } = useParams()
   const router = useRouter()
+  const auth = useAuth()
 
-  // 🔗 These will come from backend later using eventId
-  const backendEventId = null // TODO
-  const eventMeta = {
-    name: 'Voice of Avishkar',
-    description:
-      'Show your talent and voice in front of the crowd. Compete with the best and win exciting prizes.',
-    rules: [
-      'Each participant gets 3 minutes.',
-      'No abusive language allowed.',
-      'Judges’ decision will be final.',
-    ],
-  }
-
-  const upiDetails = {
-    upiId: 'avishkar@upi',
-    amount: 199,
-    description: 'Main Event Registration',
-  }
+  // State
+  const [event, setEvent] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(null)
+  const [successCode, setSuccessCode] = useState(null)
 
   const [form, setForm] = useState({
     name: '',
     age: '',
+    email: '',
     phone: '',
     college: '',
     participantDepartment: '',
     participantType: '',
     semester: '',
+    school: '',
     schoolClass: '',
-    teamMembers: [''], // first member mandatory
+    teamMembers: [''],
     paymentScreenshot: null,
+    paymentScreenshotBase64: null,
   })
+
+  // Fetch event details
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const res = await fetch(`/api/events/${eventId}`)
+        const data = await res.json()
+
+        console.log('EVENT DATA', data)
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to fetch event')
+        }
+
+        setEvent(data)
+        setError(null)
+
+        if (data.type === 'team' && data.teamSize > 1) {
+          setForm(prev => ({
+            ...prev,
+            teamMembers: Array(data.teamSize).fill(''),
+          }))
+        }
+      } catch (err) {
+        console.error('Failed to fetch event', err)
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (eventId) fetchEvent()
+  }, [eventId])
 
   const handleChange = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -50,20 +75,165 @@ const EventRegisterPage = () => {
   }
 
   const addTeamMember = () => {
-    setForm(prev => ({ ...prev, teamMembers: [...prev.teamMembers, ''] }))
+    if (event && form.teamMembers.length < event.teamSize) {
+      setForm(prev => ({ ...prev, teamMembers: [...prev.teamMembers, ''] }))
+    }
+  }
+
+  const removeTeamMember = (index) => {
+    if (form.teamMembers.length > 1) {
+      const arr = form.teamMembers.filter((_, i) => i !== index)
+      setForm(prev => ({ ...prev, teamMembers: arr }))
+    }
+  }
+
+  const handleFileChange = (file) => {
+    if (!file) {
+      setForm(prev => ({
+        ...prev,
+        paymentScreenshot: null,
+        paymentScreenshotBase64: null,
+      }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setForm(prev => ({
+        ...prev,
+        paymentScreenshot: file,
+        paymentScreenshotBase64: reader.result,
+      }))
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    try {
+      const filteredTeamMembers = form.teamMembers.filter(m => m.trim() !== '')
+      if (event.type === 'team' && filteredTeamMembers.length !== event.teamSize) {
+        throw new Error(`Team must have exactly ${event.teamSize} members`)
+      }
+      const payload = {
+        eventId: event._id,
+        name: form.name,
+        age: parseInt(form.age),
+        email: form.email,
+        phone: form.phone,
+        participantType: form.participantType,
+        college: form.participantType === 'college' ? form.college : form.school,
+        participantDepartment:
+          form.participantType === 'college' ? form.participantDepartment : null,
+        semester: form.participantType === 'college' ? form.semester : null,
+        school: form.participantType === 'school' ? form.school : null,
+        schoolClass: form.participantType === 'school' ? form.schoolClass : null,
+        teamMembers: event.type === 'team' ? filteredTeamMembers : [],
+        paymentScreenshot: form.paymentScreenshotBase64,
+      }
 
-    const payload = {
-      eventId: backendEventId,
-      slug: eventId,
-      ...form,
+      const token = await auth.getToken()
+      const res = await fetch('/api/events/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 409) {
+          alert('Already Registered!\n\nYou have already registered for this event. Check "My Registrations" to view your entry code.')
+          router.push('/events/my-registrations')
+          return
+        }
+        throw new Error(data.message || 'Registration failed')
+      }
+      setSuccessCode(data.registration.uniqueCode)
+      setTimeout(() => {
+        router.push('/events/my-registrations')
+      }, 4000)
+    } catch (err) {
+      console.error('Registration error:', err)
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
     }
+  }
 
-    console.log('Submitting:', payload)
-    router.push('/events/my-registrations')
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+          <p>Loading event details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error && !event) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white">
+        <div className="text-center">
+          <p className="text-red-500 text-xl mb-2">Error</p>
+          <p className="text-white/70">{error}</p>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 px-6 py-2 rounded-lg border border-white/30 hover:border-red-500"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (successCode) {
+    return (
+      <div className="min-h-screen w-full relative overflow-hidden">
+        <div
+          className="fixed inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/events/comic-bg2.png')" }}
+        />
+        <div className="fixed inset-0 bg-black/70" />
+        <div className="relative z-10 min-h-screen flex items-center justify-center px-4">
+          <div className="bg-black/40 backdrop-blur-md p-8 rounded-2xl border border-white/20 text-center max-w-md">
+            <div className="mb-6">
+              <svg
+                className="w-20 h-20 mx-auto text-green-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0
+                      9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <h2 className="deadpool-heading text-2xl mb-4 text-white">
+              Registration Successful!
+            </h2>
+            <p className="text-white/80 mb-6">Your unique code is:</p>
+            <div className="bg-black/60 border border-red-500/40 rounded-lg p-4 mb-6">
+              <p className="text-4xl font-bold text-red-400 tracking-wider">
+                {successCode}
+              </p>
+            </div>
+            <p className="text-sm text-white/60">
+              Save this code for verification at the event.
+            </p>
+            <p className="text-xs text-white/40 mt-2">
+              Redirecting to your registrations...
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -83,26 +253,73 @@ const EventRegisterPage = () => {
           {/* EVENT META */}
           <div className="text-center space-y-2">
             <h1 className="deadpool-heading text-3xl">
-              {eventMeta.name}
+              {event.title}
             </h1>
             <p className="text-sm text-white/80">
-              {eventMeta.description}
+              {event.description}
             </p>
+            <div className="flex items-center justify-center gap-4 text-sm mt-2">
+              <span className="text-white/60">
+                {event.type === 'team' ? `Team of ${event.teamSize}` : 'Individual'}
+              </span>
+              <span className="text-red-400 font-semibold">₹{event.amount}</span>
+            </div>
+
+            {/* Event Timing Details */}
+            <div className="mt-4 p-3 rounded-lg bg-black/50 border border-white/20 text-left space-y-1.5">
+              <div className="text-sm">
+                <span className="text-white/60">Start: </span>
+                <span className="text-white/90">
+                  {new Date(event.startTime).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })} at {new Date(event.startTime).toLocaleTimeString('en-IN', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              </div>
+              <div className="text-sm">
+                <span className="text-white/60">End: </span>
+                <span className="text-white/90">
+                  {new Date(event.endTime).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })} at {new Date(event.endTime).toLocaleTimeString('en-IN', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              </div>
+              <div className="text-sm">
+                <span className="text-white/60">Registration Deadline: </span>
+                <span className="text-red-400 font-semibold">
+                  {new Date(event.registrationDeadline).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric'
+                  })} at {new Date(event.registrationDeadline).toLocaleTimeString('en-IN', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            </div>
           </div>
 
           <div className="p-4 rounded-xl bg-black/50 border border-white/20">
             <p className="text-sm font-semibold mb-2 text-red-400">Rules</p>
             <ul className="list-disc list-inside space-y-1 text-sm text-white/80">
-              {eventMeta.rules.map((r, i) => (
+              {event.rules.map((r, i) => (
                 <li key={i}>{r}</li>
               ))}
             </ul>
           </div>
 
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/40">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+          )}
+
           {/* FORM */}
-          <Field label="Full Name" onChange={v => handleChange('name', v)} />
-          <Field label="Age" type="number" onChange={v => handleChange('age', v)} />
-          <Field label="Phone" onChange={v => handleChange('phone', v)} />
+          <Field label="Full Name" value={form.name} onChange={v => handleChange('name', v)} />
+          <Field label="Age" type="number" value={form.age} onChange={v => handleChange('age', v)} />
+          <Field label="Email" type="email" value={form.email} onChange={v => handleChange('email', v)} />
+          <Field label="Phone" value={form.phone} onChange={v => handleChange('phone', v)} />
 
           {/* Participant Type FIRST */}
           <div className="space-y-1">
@@ -111,6 +328,7 @@ const EventRegisterPage = () => {
             </label>
             <select
               required
+              value={form.participantType}
               className="
                 w-full px-4 py-2.5 rounded-lg
                 bg-black/60
@@ -129,79 +347,112 @@ const EventRegisterPage = () => {
             </select>
           </div>
 
-          {/* College / School Name */}
-          <Field label="College / School Name" onChange={v => handleChange('college', v)} />
+          <Field
+            label={
+              form.participantType === 'college'
+                ? 'College Name'
+                : form.participantType === 'school'
+                  ? 'School Name'
+                  : 'College / School Name'
+            }
+            value={form.participantType === 'college' ? form.college : form.school}
+            onChange={v =>
+              handleChange(
+                form.participantType === 'college' ? 'college' : 'school',
+                v
+              )
+            }
+          />
 
           {/* Department only for College */}
           {form.participantType === 'college' && (
             <Field
               label="Department"
+              value={form.participantDepartment}
               onChange={v => handleChange('participantDepartment', v)}
             />
           )}
 
           {form.participantType === 'college' && (
             <div className="p-3 rounded-lg border border-blue-400/40 bg-blue-500/10">
-              <Field label="Semester" onChange={v => handleChange('semester', v)} />
+              <Field
+                label="Semester"
+                value={form.semester}
+                onChange={v => handleChange('semester', v)}
+              />
             </div>
           )}
 
           {form.participantType === 'school' && (
             <div className="p-3 rounded-lg border border-green-400/40 bg-green-500/10">
-              <Field label="Class" onChange={v => handleChange('schoolClass', v)} />
+              <Field
+                label="Class"
+                value={form.schoolClass}
+                onChange={v => handleChange('schoolClass', v)}
+              />
             </div>
           )}
 
           {/* Team */}
-          <div className="space-y-1">
-            <label className="block text-base font-semibold tracking-wide text-white/90 drop-shadow">
-              Team Members
-            </label>
-
-            {form.teamMembers.map((m, i) => (
-              <input
-                key={i}
-                required={i === 0} // Only first member is mandatory
-                className="
-                  w-full mb-2 px-4 py-2.5 rounded-lg
-                  bg-black/60
-                  border border-white/30
-                  text-base text-white
-                  shadow-inner
-                  focus:outline-none
-                  focus:border-red-500
-                  focus:ring-2 focus:ring-red-500/40
-                "
-                placeholder={
-                  i === 0 ? 'Member 1 (Required)' : `Member ${i + 1} (Optional)`
-                }
-                onChange={(e) => handleTeamChange(i, e.target.value)}
-              />
-            ))}
-
-            <button
-              type="button"
-              onClick={addTeamMember}
-              className="text-xs text-red-400 mt-1"
-            >
-              + Add member
-            </button>
-          </div>
+          {event.type === 'team' && (
+            <div className="space-y-2">
+              <label className="block text-base font-semibold tracking-wide text-white/90 drop-shadow">
+                Team Members ({event.teamSize} required)
+              </label>
+              {form.teamMembers.map((m, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    required
+                    value={m}
+                    className="
+                      flex-1 px-4 py-2.5 rounded-lg
+                      bg-black/60
+                      border border-white/30
+                      text-base text-white
+                      shadow-inner
+                      focus:outline-none
+                      focus:border-red-500
+                      focus:ring-2 focus:ring-red-500/40
+                    "
+                    placeholder={`Member ${i + 1} Name`}
+                    onChange={e => handleTeamChange(i, e.target.value)}
+                  />
+                  {form.teamMembers.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTeamMember(i)}
+                      className="px-3 py-2 rounded-lg border border-red-500/40 text-red-400 hover:bg-red-500/20"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              {form.teamMembers.length < event.teamSize && (
+                <button
+                  type="button"
+                  onClick={addTeamMember}
+                  className="text-sm text-red-400 hover:text-red-300"
+                >
+                  + Add member ({form.teamMembers.length}/{event.teamSize})
+                </button>
+              )}
+            </div>
+          )}
 
           {/* PAYMENT BLOCK */}
           <div className="p-4 rounded-xl border border-red-500/40 bg-black/50">
             <p className="text-sm text-white/80">Pay using UPI</p>
-            <p className="text-lg text-red-400">{upiDetails.upiId}</p>
-            <p className="text-sm">Amount: ₹{upiDetails.amount}</p>
-            <p className="text-xs text-white/60">{upiDetails.description}</p>
+            <p className="text-lg text-red-400 font-mono">{event.upiId}</p>
+            <p className="text-sm">Amount: ₹{event.amount}</p>
+            <p className="text-xs text-white/60">Event Registration Fee</p>
           </div>
 
           {/* Screenshot Upload */}
           <div className="space-y-2">
             <label className="block text-base font-semibold tracking-wide text-white/90 drop-shadow">
-              Upload Payment Screenshot
+              Upload Payment Screenshot *
             </label>
-
             <div className="flex items-center gap-3">
               <label
                 htmlFor="screenshot"
@@ -216,39 +467,35 @@ const EventRegisterPage = () => {
               >
                 Choose File
               </label>
-
               <span className="text-xs text-white/70">
                 {form.paymentScreenshot
                   ? form.paymentScreenshot.name
                   : 'No file selected'}
               </span>
             </div>
-
             <input
               id="screenshot"
               type="file"
+              accept="image/*"
               className="hidden"
-              onChange={(e) =>
-                handleChange('paymentScreenshot', e.target.files?.[0] || null)
-              }
+              onChange={e => handleFileChange(e.target.files?.[0] || null)}
             />
           </div>
 
           <button
             type="submit"
-            disabled={!form.paymentScreenshot}
+            disabled={!form.paymentScreenshot || submitting}
             className={`
               w-full mt-4 py-2.5 rounded-full
               border border-white/30
               transition-all
-              ${
-                form.paymentScreenshot
-                  ? 'hover:border-red-500 hover:text-red-400 hover:shadow-[0_0_25px_rgba(220,38,38,0.75)]'
-                  : 'opacity-40 cursor-not-allowed'
+              ${form.paymentScreenshot && !submitting
+                ? 'hover:border-red-500 hover:text-red-400 hover:shadow-[0_0_25px_rgba(220,38,38,0.75)]'
+                : 'opacity-40 cursor-not-allowed'
               }
             `}
           >
-            Submit & Generate Code
+            {submitting ? 'Submitting...' : 'Submit & Generate Code'}
           </button>
         </form>
       </div>
@@ -256,7 +503,7 @@ const EventRegisterPage = () => {
   )
 }
 
-const Field = ({ label, type = 'text', onChange }) => (
+const Field = ({ label, type = 'text', value, onChange }) => (
   <div className="space-y-1">
     <label className="block text-base font-semibold tracking-wide text-white/90 drop-shadow">
       {label}
@@ -264,6 +511,7 @@ const Field = ({ label, type = 'text', onChange }) => (
     <input
       required
       type={type}
+      value={value}
       className="
         w-full px-4 py-2.5 rounded-lg
         bg-black/60
@@ -275,7 +523,7 @@ const Field = ({ label, type = 'text', onChange }) => (
         focus:border-red-500
         focus:ring-2 focus:ring-red-500/40
       "
-      onChange={(e) => onChange(e.target.value)}
+      onChange={e => onChange(e.target.value)}
     />
   </div>
 )

@@ -119,13 +119,16 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
+
 .deadpool-heading {
   font-family: var(--font-bangers), cursive;
-  color: #ef4444; /* Tailwind red-500 */
+  color: #ef4444;
+  /* Tailwind red-500 */
   letter-spacing: 0.08em;
   text-shadow:
     3px 3px 0px #000,
@@ -133,4 +136,15 @@
     9px 9px 0px #1a1a1a;
 }
 
-
+.admin-heading {
+  font-family: 'Impact', 'Arial Black', sans-serif;
+  text-shadow:
+    3px 3px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000,
+    2px 2px 0 #dc2626,
+    4px 4px 8px rgba(0, 0, 0, 0.8);
+  color: #fff;
+  letter-spacing: 0.05em;
+}

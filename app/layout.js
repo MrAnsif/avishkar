@@ -2,10 +2,11 @@ import { Geist, Geist_Mono, Bangers } from "next/font/google";
 import "./globals.css";
 import StaggeredMenu from "@/components/StaggeredMenu";
 import { ClerkProvider } from "@clerk/nextjs";
-import AuthUserButtonWrapper from "@/components/ui/AuthUserButtonWrapper";
+
 import LenisProvider from "@/components/LenisProvider";
 import { Analytics } from "@vercel/analytics/next"
 import PageTransition from "@/components/PageTransition";
+import NavbarVisibilityWrapper from "@/components/NavbarVisibilityWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ const menuItems = [
   },
   // { label: "About", ariaLabel: "Learn about us", link: "/about" },
   { label: "Contact", ariaLabel: "Get in touch", link: "/contact" },
+  { label: "Registrations", ariaLabel: "View your registrations", link: "/events/my-registrations" },
 ];
 
 const socialItems = [
@@ -57,26 +59,29 @@ export default function RootLayout({ children }) {
         <body className="antialiased">
           <Analytics />
           {/* Menu overlay */}
-          <div className="fixed inset-0 z-20 h-[100dvh] pointer-events-none">
-            <StaggeredMenu
-              position="right"
-              items={menuItems}
-              socialItems={socialItems}
-              displaySocials
-              displayItemNumbering
-              menuButtonColor="#fff"
-              openMenuButtonColor="#000000"
-              changeMenuColorOnOpen
-              colors={["#FF7A7B", "#AD242C"]}
-              logoUrl="/images/logo.PNG"
-              accentColor="#AD242C"
-            />
-          </div>
+          <NavbarVisibilityWrapper>
+            <div className="fixed inset-0 z-20 h-[100dvh] pointer-events-none">
+              <StaggeredMenu
+                position="right"
+                items={menuItems}
+                socialItems={socialItems}
+                displaySocials
+                displayItemNumbering
+                menuButtonColor="#fff"
+                openMenuButtonColor="#000000"
+                changeMenuColorOnOpen
+                colors={["#FF7A7B", "#AD242C"]}
+                logoUrl="/images/logo.PNG"
+                accentColor="#AD242C"
+              />
+            </div>
+          </NavbarVisibilityWrapper>
 
           {/* Auth button – aligned with menu */}
-          <div className="fixed top-6 right-32 z-30 flex items-center pointer-events-auto text-white">
-            <AuthUserButtonWrapper />
-          </div>
+          {/* <NavbarVisibilityWrapper>
+            <div className="fixed top-6 right-32 z-30 flex items-center pointer-events-auto text-white">
+            </div>
+          </NavbarVisibilityWrapper> */}
           <PageTransition>
             <LenisProvider>
               {children}
