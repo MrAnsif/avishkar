@@ -79,7 +79,7 @@ const Page = () => {
 
       <section className='relative w-full'>
         <div className='fixed inset-0 -z-10 bg-[#141313] pointer-events-auto'>
-          {/* {showGrid && (
+          {showGrid && (
             <GridScan
               sensitivity={0.75}
               lineThickness={1}
@@ -97,7 +97,7 @@ const Page = () => {
               enableWebcam={false}
               scanGlow={0.25}
             />
-          )} */}
+          )}
         </div>
 
         {/* Hero Section with Stars and Shuffle */}
