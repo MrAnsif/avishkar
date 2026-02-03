@@ -181,14 +181,14 @@ export default function AddEventPage() {
               <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-bold mb-2 text-white/90 uppercase tracking-wide">
-                    UPI ID *
+                    GPay Number *
                   </label>
                   <input
                     type="text"
                     value={upiId}
                     onChange={(e) => setUpiId(e.target.value)}
                     required
-                    placeholder="yourname@upi"
+                    placeholder="yourGpayNumber"
                     className="w-full px-4 py-3 rounded-lg bg-black/40 border-2 border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all"
                   />
                 </div>

@@ -189,7 +189,7 @@ export default function AddEventPage() {
               <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-sm font-bold mb-2 text-white/90 uppercase tracking-wide">
-                    UPI ID *
+                    GPay Number *
                   </label>
                   <input
                     name="upiId"

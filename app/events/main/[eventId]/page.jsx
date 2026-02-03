@@ -15,6 +15,7 @@ const EventRegisterPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [successCode, setSuccessCode] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -106,6 +107,16 @@ const EventRegisterPage = () => {
       }))
     }
     reader.readAsDataURL(file)
+  }
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(event.upiId)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -442,10 +453,45 @@ const EventRegisterPage = () => {
 
           {/* PAYMENT BLOCK */}
           <div className="p-4 rounded-xl border border-red-500/40 bg-black/50">
-            <p className="text-sm text-white/80">Pay using UPI</p>
-            <p className="text-lg text-red-400 font-mono">{event.upiId}</p>
-            <p className="text-sm">Amount: ₹{event.amount}</p>
-            <p className="text-xs text-white/60">Event Registration Fee</p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm text-white/80">GPay Number</p>
+                <p className="text-lg text-red-400 font-mono">{event.upiId}</p>
+                <p className="text-sm mt-2">Amount: ₹{event.amount}</p>
+                <p className="text-xs text-white/60">Event Registration Fee</p>
+              </div>
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="
+                  px-3 py-2 rounded-lg
+                  border border-white/30
+                  bg-black/60
+                  text-sm
+                  hover:border-red-500
+                  hover:text-red-400
+                  transition-all
+                  flex items-center gap-2
+                  whitespace-nowrap
+                "
+              >
+                {copied ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Screenshot Upload */}

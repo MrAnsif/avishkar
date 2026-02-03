@@ -15,6 +15,7 @@ const EventRegisterPage = () => {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [successCode, setSuccessCode] = useState(null)
+  const [copied, setCopied] = useState(false)
 
   const [form, setForm] = useState({
     name: '',
@@ -106,6 +107,16 @@ const EventRegisterPage = () => {
       }))
     }
     reader.readAsDataURL(file)
+  }
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(event.upiId)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -442,8 +453,19 @@ const EventRegisterPage = () => {
 
           {/* PAYMENT BLOCK */}
           <div className="p-4 rounded-xl border border-red-500/40 bg-black/50">
-            <p className="text-sm text-white/80">Pay using UPI</p>
-            <p className="text-lg text-red-400 font-mono">{event.upiId}</p>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <p className="text-sm text-white/80">GPay Number</p>
+                <p className="text-lg text-red-400 font-mono">{event.upiId}</p>
+              </div>
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="px-3 py-1.5 rounded-lg border border-white/30 bg-black/60 hover:border-red-500 hover:bg-red-500/10 transition-all text-sm"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
             <p className="text-sm">Amount: ₹{event.amount}</p>
             <p className="text-xs text-white/60">Event Registration Fee</p>
           </div>
