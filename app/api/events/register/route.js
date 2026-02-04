@@ -2,7 +2,7 @@ import { connectDB } from "@/lib/db";
 import Registration from "@/lib/models/Registration";
 import Event from "@/lib/models/Event";
 import cloudinary from "@/lib/cloudinary";
-import { jwtVerify, createRemoteJWKSet } from "jose";
+import { auth } from "@clerk/nextjs/server";
 
 async function generateUnique4DigitCode() {
   let code;
@@ -18,41 +18,8 @@ export async function POST(req) {
   try {
     await connectDB();
 
-    // Get token from Authorization header
-    const authHeader = req.headers.get('authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return Response.json(
-        { message: "Unauthorized - No token provided" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
-    console.log("TOKEN", token);
-
-    // Verify token using Clerk's JWKS endpoint
-    let userId;
-    try {
-      // Get your Clerk Frontend API from the JWT issuer
-      const JWKS = createRemoteJWKSet(
-        new URL('https://cosmic-adder-20.clerk.accounts.dev/.well-known/jwks.json')
-      );
-
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer: 'https://cosmic-adder-20.clerk.accounts.dev',
-        clockTolerance: 60,
-      });
-
-      userId = payload.sub;
-      console.log("AUTH USER ID:", userId);
-    } catch (err) {
-      console.error("Token verification failed:", err);
-      return Response.json(
-        { message: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
+    // ✅ Clerk cookie-based auth (PRODUCTION SAFE)
+    const { userId } = auth();
 
     if (!userId) {
       return Response.json(
@@ -140,7 +107,7 @@ export async function POST(req) {
   } catch (err) {
     console.error("REGISTER ERROR:", err);
     return Response.json(
-      { message: "Server error", error: err.message },
+      { message: "Server error" },
       { status: 500 }
     );
   }
