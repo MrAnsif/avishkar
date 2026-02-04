@@ -2,53 +2,24 @@ import { connectDB } from "@/lib/db";
 import Registration from "@/lib/models/Registration";
 import Event from "@/lib/models/Event";
 import { NextResponse } from "next/server";
-import { jwtVerify, createRemoteJWKSet } from "jose";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(req) {
   try {
     await connectDB();
 
-    // Get token from Authorization header
-    const authHeader = req.headers.get('authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log("MY-REGISTRATIONS API - No Bearer token found");
-      return NextResponse.json(
-        { message: "Unauthorized - Please sign in" },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
-    console.log("TOKEN", token);
-    // Verify token using Clerk's JWKS endpoint
-    let userId;
-    try {
-      const JWKS = createRemoteJWKSet(
-        new URL('https://cosmic-adder-20.clerk.accounts.dev/.well-known/jwks.json')
-      );
-
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer: 'https://cosmic-adder-20.clerk.accounts.dev',
-        clockTolerance: 60,
-      });
-
-      userId = payload.sub;
-      console.log("MY-REGISTRATIONS API - UserId:", userId);
-    } catch (err) {
-      console.error("Token verification failed:", err);
-      return NextResponse.json(
-        { message: "Invalid or expired token" },
-        { status: 401 }
-      );
-    }
+    // ✅ Clerk cookie-based auth (same as registration route)
+    const { userId } = await auth();
 
     if (!userId) {
+      console.log("MY-REGISTRATIONS API - No authenticated user");
       return NextResponse.json(
         { message: "Unauthorized - Please sign in" },
         { status: 401 }
       );
     }
+
+    console.log("MY-REGISTRATIONS API - UserId:", userId);
 
     // Find registrations of this user and populate event details
     const registrations = await Registration.find({ userId })
