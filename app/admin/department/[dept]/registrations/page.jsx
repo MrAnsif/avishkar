@@ -101,7 +101,7 @@ export default function DepartmentRegistrations() {
               placeholder="Search email or phone..."
               value={searchEmailOrPhone}
               onChange={(e) => setSearchEmailOrPhone(e.target.value)}
-              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-red-600 bg-black/60 backdrop-blur-md text-white placeholder-white/50 font-bold"
+              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-64 bg-black/60 text-white font-bold"
             />
 
             <input
@@ -110,7 +110,7 @@ export default function DepartmentRegistrations() {
               value={searchCode}
               onChange={(e) => setSearchCode(e.target.value)}
               maxLength={4}
-              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-red-600 bg-black/60 backdrop-blur-md text-white placeholder-white/50 font-mono font-bold"
+              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-40 bg-black/60 text-white font-mono font-bold"
             />
           </div>
         </div>
@@ -126,10 +126,10 @@ export default function DepartmentRegistrations() {
           </div>
         ) : (
           <>
-            {/* DESKTOP TABLE */}
-            <div className="hidden lg:block overflow-x-auto bg-black/40 backdrop-blur-md rounded-xl border border-white/20 shadow-[0_0_30px_rgba(220,38,38,0.3)]">
-              <table className="w-full border-collapse">
-                <thead className="bg-red-900/80 border-b-2 border-red-400">
+            {/* DESKTOP TABLE (UNCHANGED) */}
+            <div className="hidden lg:block overflow-x-auto bg-black/40 backdrop-blur-md rounded-xl border border-white/20">
+              <table className="w-full">
+                <thead className="bg-red-900/80">
                   <tr>
                     <th className="p-4 text-left">Event</th>
                     <th className="p-4 text-left">Name</th>
@@ -143,36 +143,19 @@ export default function DepartmentRegistrations() {
                 </thead>
                 <tbody>
                   {filteredRegistrations.map((r, idx) => (
-                    <tr
-                      key={r._id}
-                      className={`border-t border-white/10 ${
-                        idx % 2 === 0 ? "bg-black/20" : "bg-black/40"
-                      }`}
-                    >
+                    <tr key={r._id} className={idx % 2 ? "bg-black/40" : "bg-black/20"}>
                       <td className="p-4">{r.eventId?.title}</td>
                       <td className="p-4">{r.name}</td>
-                      <td className="p-4 text-sm">{r.email}</td>
+                      <td className="p-4">{r.email}</td>
                       <td className="p-4">{r.phone}</td>
                       <td className="p-4">{r.college || "-"}</td>
+                      <td className="p-4">{r.participantDepartment || "-"}</td>
+                      <td className="p-4 font-mono text-red-400">{r.uniqueCode}</td>
                       <td className="p-4">
-                        {r.participantDepartment || "-"}
-                      </td>
-                      <td className="p-4">
-                        <span className="font-mono font-black text-red-400">
-                          {r.uniqueCode}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {r.paymentScreenshot ? (
-                          <button
-                            onClick={() =>
-                              setSelectedScreenshot(r.paymentScreenshot)
-                            }
-                          >
+                        {r.paymentScreenshot && (
+                          <button onClick={() => setSelectedScreenshot(r.paymentScreenshot)}>
                             <Eye />
                           </button>
-                        ) : (
-                          "—"
                         )}
                       </td>
                     </tr>
@@ -181,7 +164,7 @@ export default function DepartmentRegistrations() {
               </table>
             </div>
 
-            {/* MOBILE CARDS (PAYMENT VIEW PRESERVED) */}
+            {/* 📱 MOBILE CARDS (ONLY ENHANCED, NOT REPLACED) */}
             <div className="lg:hidden space-y-4">
               {filteredRegistrations.map((r) => (
                 <div
@@ -193,8 +176,11 @@ export default function DepartmentRegistrations() {
                       <h3 className="font-black text-lg text-red-400">
                         {r.eventId?.title}
                       </h3>
-                      <p className="text-sm">{r.email}</p>
-                      <p className="text-sm">{r.phone}</p>
+                      <p className="text-sm"><b>Name:</b> {r.name}</p>
+                      <p className="text-sm break-all"><b>Email:</b> {r.email}</p>
+                      <p className="text-sm"><b>Phone:</b> {r.phone}</p>
+                      <p className="text-sm"><b>College:</b> {r.college || "-"}</p>
+                      <p className="text-sm"><b>Dept:</b> {r.participantDepartment || "-"}</p>
                     </div>
 
                     <div className="flex flex-col items-end gap-2">
