@@ -10,7 +10,11 @@ export default function DepartmentRegistrations() {
 
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 🔍 SEARCH STATES
+  const [searchEmailOrPhone, setSearchEmailOrPhone] = useState("");
   const [searchCode, setSearchCode] = useState("");
+
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
 
   // ================= FETCH REGISTRATIONS =================
@@ -31,7 +35,6 @@ export default function DepartmentRegistrations() {
       });
 
       const data = await res.json();
-      console.log('registrations', data);
       setRegistrations(data.registrations || []);
     } catch (err) {
       console.error("Failed to fetch registrations", err);
@@ -45,9 +48,18 @@ export default function DepartmentRegistrations() {
   }, [dept]);
 
   // ================= FILTER =================
-  const filteredRegistrations = registrations.filter((r) =>
-    r.uniqueCode?.includes(searchCode)
-  );
+  const filteredRegistrations = registrations.filter((r) => {
+    const emailOrPhoneMatch = searchEmailOrPhone
+      ? r.email?.toLowerCase().includes(searchEmailOrPhone.toLowerCase()) ||
+        r.phone?.includes(searchEmailOrPhone)
+      : true;
+
+    const codeMatch = searchCode
+      ? r.uniqueCode?.includes(searchCode)
+      : true;
+
+    return emailOrPhoneMatch && codeMatch;
+  });
 
   // ================= UI =================
   return (
@@ -70,23 +82,37 @@ export default function DepartmentRegistrations() {
               ← BACK
             </button>
 
-            <h1 className="text-2xl sm:text-4xl font-black uppercase tracking-wider" style={{
-              fontFamily: 'Impact, sans-serif',
-              textShadow: '3px 3px 0px rgba(220,38,38,0.8), -1px -1px 0px rgba(0,0,0,0.8)'
-            }}>
+            <h1
+              className="text-2xl sm:text-4xl font-black uppercase tracking-wider"
+              style={{
+                fontFamily: "Impact, sans-serif",
+                textShadow:
+                  "3px 3px 0px rgba(220,38,38,0.8), -1px -1px 0px rgba(0,0,0,0.8)",
+              }}
+            >
               {dept} REGISTRATIONS
             </h1>
           </div>
 
-          {/* SEARCH */}
-          <input
-            type="text"
-            placeholder="Search code..."
-            value={searchCode}
-            onChange={(e) => setSearchCode(e.target.value)}
-            maxLength={4}
-            className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-red-600 bg-black/60 backdrop-blur-md text-white placeholder-white/50 font-mono font-bold"
-          />
+          {/* 🔍 SEARCH INPUTS */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <input
+              type="text"
+              placeholder="Search email or phone..."
+              value={searchEmailOrPhone}
+              onChange={(e) => setSearchEmailOrPhone(e.target.value)}
+              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-red-600 bg-black/60 backdrop-blur-md text-white placeholder-white/50 font-bold"
+            />
+
+            <input
+              type="text"
+              placeholder="Search code..."
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+              maxLength={4}
+              className="border-2 border-red-500 px-4 py-2 rounded-md w-full sm:w-40 focus:outline-none focus:ring-2 focus:ring-red-600 bg-black/60 backdrop-blur-md text-white placeholder-white/50 font-mono font-bold"
+            />
+          </div>
         </div>
 
         {/* CONTENT */}
@@ -103,47 +129,50 @@ export default function DepartmentRegistrations() {
             {/* DESKTOP TABLE */}
             <div className="hidden lg:block overflow-x-auto bg-black/40 backdrop-blur-md rounded-xl border border-white/20 shadow-[0_0_30px_rgba(220,38,38,0.3)]">
               <table className="w-full border-collapse">
-                <thead className="bg-red-900/80 backdrop-blur-sm border-b-2 border-red-400">
+                <thead className="bg-red-900/80 border-b-2 border-red-400">
                   <tr>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Event</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Name</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Email</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Phone</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">College</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Dept</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Code</th>
-                    <th className="p-4 text-left font-black uppercase tracking-wide">Payment</th>
+                    <th className="p-4 text-left">Event</th>
+                    <th className="p-4 text-left">Name</th>
+                    <th className="p-4 text-left">Email</th>
+                    <th className="p-4 text-left">Phone</th>
+                    <th className="p-4 text-left">College</th>
+                    <th className="p-4 text-left">Dept</th>
+                    <th className="p-4 text-left">Code</th>
+                    <th className="p-4 text-left">Payment</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRegistrations.map((r, idx) => (
                     <tr
                       key={r._id}
-                      className={`border-t border-white/10 hover:bg-red-600/20 transition-colors ${idx % 2 === 0 ? 'bg-black/20' : 'bg-black/40'
-                        }`}
+                      className={`border-t border-white/10 ${
+                        idx % 2 === 0 ? "bg-black/20" : "bg-black/40"
+                      }`}
                     >
-                      <td className="p-4 font-semibold">{r.eventId?.title}</td>
+                      <td className="p-4">{r.eventId?.title}</td>
                       <td className="p-4">{r.name}</td>
-                      <td className="p-4 text-sm text-white/80">{r.email}</td>
+                      <td className="p-4 text-sm">{r.email}</td>
                       <td className="p-4">{r.phone}</td>
-                      <td className="p-4 text-sm">{r.college || "-"}</td>
-                      <td className="p-4 text-sm">{r.participantDepartment || "-"}</td>
+                      <td className="p-4">{r.college || "-"}</td>
                       <td className="p-4">
-                        <span className="font-mono font-black text-lg text-red-400 bg-black/60 px-3 py-1 rounded border border-red-500">
+                        {r.participantDepartment || "-"}
+                      </td>
+                      <td className="p-4">
+                        <span className="font-mono font-black text-red-400">
                           {r.uniqueCode}
                         </span>
                       </td>
                       <td className="p-4">
                         {r.paymentScreenshot ? (
                           <button
-                            onClick={() => setSelectedScreenshot(r.paymentScreenshot)}
-                            className="p-2 rounded-full bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white transition-all border border-red-500/30 active:scale-90"
-                            title="View Screenshot"
+                            onClick={() =>
+                              setSelectedScreenshot(r.paymentScreenshot)
+                            }
                           >
-                            <Eye size={20} />
+                            <Eye />
                           </button>
                         ) : (
-                          <span className="text-white/20 text-xs italic">N/A</span>
+                          "—"
                         )}
                       </td>
                     </tr>
@@ -152,51 +181,36 @@ export default function DepartmentRegistrations() {
               </table>
             </div>
 
-            {/* MOBILE CARDS & SMALL TABLEFALLBACK */}
+            {/* MOBILE CARDS (PAYMENT VIEW PRESERVED) */}
             <div className="lg:hidden space-y-4">
               {filteredRegistrations.map((r) => (
                 <div
                   key={r._id}
-                  className="bg-black/40 backdrop-blur-md rounded-xl border border-white/20 p-5 shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:border-red-500/50 transition-all"
+                  className="bg-black/40 backdrop-blur-md rounded-xl border border-white/20 p-5"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex flex-col">
-                      <h3 className="font-black text-lg text-red-400 uppercase pr-2">
+                    <div>
+                      <h3 className="font-black text-lg text-red-400">
                         {r.eventId?.title}
                       </h3>
-                      <span className="text-xs text-white/50">{r.email}</span>
+                      <p className="text-sm">{r.email}</p>
+                      <p className="text-sm">{r.phone}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex flex-col items-end gap-2">
                       {r.paymentScreenshot && (
                         <button
-                          onClick={() => setSelectedScreenshot(r.paymentScreenshot)}
+                          onClick={() =>
+                            setSelectedScreenshot(r.paymentScreenshot)
+                          }
                           className="p-2 rounded-full bg-red-600/20 text-red-400 border border-red-500/30"
                         >
                           <Eye size={18} />
                         </button>
                       )}
-                      <span className="font-mono font-black text-sm text-red-400 bg-black/60 px-3 py-1 rounded border border-red-500 whitespace-nowrap">
+                      <span className="font-mono text-red-400">
                         {r.uniqueCode}
                       </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-y-2 text-sm mt-4 pt-4 border-t border-white/10">
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">Name</p>
-                      <p className="text-white font-medium">{r.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">Phone</p>
-                      <p className="text-white font-mono">{r.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">College</p>
-                      <p className="text-white truncate">{r.college || "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-white/40 text-[10px] uppercase font-bold tracking-wider">Department</p>
-                      <p className="text-white">{r.participantDepartment || "-"}</p>
                     </div>
                   </div>
                 </div>
@@ -209,35 +223,16 @@ export default function DepartmentRegistrations() {
       {/* SCREENSHOT MODAL */}
       {selectedScreenshot && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
           onClick={() => setSelectedScreenshot(null)}
         >
-          <div
-            className="relative w-full h-full max-w-4xl flex flex-col items-center justify-center animate-in zoom-in duration-300"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSelectedScreenshot(null)}
-              className="absolute top-4 right-4 p-2 text-white hover:text-red-400 transition-colors bg-black/50 rounded-full z-10"
-            >
-              <X size={32} />
-            </button>
-
-            {/* Image Container - properly constrained */}
-            <div className="w-full h-[calc(100%-8rem)] flex items-center justify-center">
-              <div className="relative max-w-full max-h-full drop-shadow-[6px_6px_0px_#000] drop-shadow-red-900">
-                <img
-                  src={selectedScreenshot}
-                  alt="Payment Screenshot"
-                  className="max-w-[90vw] max-h-[75vh] w-auto h-auto object-contain rounded-md bg-black"
-                />
-              </div>
-            </div>
-
-            <p className="mt-4 text-white font-black uppercase tracking-tighter text-xl italic drop-shadow-lg">
-              Payment Verification
-            </p>
-          </div>
+          <button className="absolute top-4 right-4 text-white">
+            <X size={32} />
+          </button>
+          <img
+            src={selectedScreenshot}
+            className="max-w-[90vw] max-h-[80vh]"
+          />
         </div>
       )}
     </main>
