@@ -19,7 +19,7 @@ export async function POST(req) {
     await connectDB();
 
     // ✅ Clerk cookie-based auth (PRODUCTION SAFE)
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return Response.json(

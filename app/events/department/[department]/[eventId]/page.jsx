@@ -7,7 +7,7 @@ import { useAuth } from "@clerk/nextjs";
 const EventRegisterPage = () => {
   const { eventId } = useParams()
   const router = useRouter()
-  const { getToken } = useAuth()
+  const { userId } = useAuth()
 
   // State
   const [event, setEvent] = useState(null)
@@ -145,12 +145,10 @@ const EventRegisterPage = () => {
         paymentScreenshot: form.paymentScreenshotBase64,
       }
 
-      const token = await getToken()
       const res = await fetch('/api/events/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       })
